@@ -7,20 +7,20 @@
 # │                                                                         │
 # │  1. Find your CUDA version:                                             │
 # │       Run:  nvidia-smi                                                  │
-# │       Look for "CUDA Version: X.Y" in the top-right corner             │
+# │       Look for "CUDA Version: X.Y" in the top-right corner              │
 # │                                                                         │
 # │  2. Install PyTorch with the matching CUDA tag:                         │
 # │                                                                         │
-# │       CUDA 11.8:  pip install torch torchaudio \                        │
+# │       CUDA 11.8:  pip install torch torchaudio torchvision \            │
 # │                     --index-url https://download.pytorch.org/whl/cu118  │
 # │                                                                         │
-# │       CUDA 12.1:  pip install torch torchaudio \                        │
+# │       CUDA 12.1:  pip install torch torchaudio torchvision \            │
 # │                     --index-url https://download.pytorch.org/whl/cu121  │
 # │                                                                         │
-# │       CUDA 12.4:  pip install torch torchaudio \                        │
+# │       CUDA 12.4:  pip install torch torchaudio torchvision \            │
 # │                     --index-url https://download.pytorch.org/whl/cu124  │
 # │                                                                         │
-# │       CUDA 12.6:  pip install torch torchaudio \                        │
+# │       CUDA 12.6:  pip install torch torchaudio torchvision \            │
 # │                     --index-url https://download.pytorch.org/whl/cu126  │
 # │                                                                         │
 # │  3. Then run:  pip install -r requirements.txt                          │
@@ -32,9 +32,9 @@
 # ---------------------------------------------------------------------------
 # Install order matters — follow this sequence if installing manually:
 #
-#   1. torch + torchaudio  (CUDA build, see above)
+#   1. torch +   (CUDA build, see above)
 #   2. faster-whisper       (CTranslate2 backend)
-#   3. whisperx             (depends on torchaudio being present first)
+#   3. whisperx             (depends on  being present first)
 #   4. Everything else      (order-independent)
 # ---------------------------------------------------------------------------
 
@@ -43,7 +43,7 @@ faster-whisper>=1.0.0
 
 # ── Forced alignment ─────────────────────────────────────────────────────────
 # whisperx bundles wav2vec2 alignment and MMS models.
-# Install AFTER torch and torchaudio to avoid dependency resolution issues.
+# Install AFTER torch, torchaudio and torchvision to avoid dependency resolution issues.
 #
 # Known harmless pip metadata conflicts (do not attempt to resolve):
 #   whisperx 3.8.5 requires torchaudio~=2.8.0  — works fine with 2.9–2.11+
@@ -74,6 +74,7 @@ numpy>=1.24,<2.3
 # NOT listed here (must be installed separately — see install.ps1):
 #   torch              (requires CUDA-specific index URL)
 #   torchaudio         (must match torch version)
+#   torchvision        (must match torch version)
 #   nvidia-cudnn-cu12  (cuDNN 8.x — required by CTranslate2 on Windows;
 #                       install.ps1 handles DLL placement automatically)
 # ---------------------------------------------------------------------------
