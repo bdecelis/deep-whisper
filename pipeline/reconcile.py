@@ -34,7 +34,7 @@ Opcodes and their handling:
 
 Usage
 -----
-    from pipeline.reconcile import reconcile_segments
+    from deep_whisper.pipeline.reconcile import reconcile_segments
 
     updated_segments = reconcile_segments(user_text, whisper_segments)
 """
