@@ -5,11 +5,11 @@ GPU stack installer. Registered as the `deep-whisper-setup` console script
 so it is available immediately after `pip install deep-whisper`.
 
 Can always be invoked directly without PATH:
-    python -m pipeline.setup_gpu
+    python -m deep_whisper.pipeline.setup_gpu
 
 Usage:
     deep-whisper-setup                   # if Scripts/ is on PATH
-    python -m pipeline.setup_gpu         # always works
+    python -m deep_whisper.pipeline.setup_gpu         # always works
     python_embeded\\Scripts\\deep-whisper-setup.exe  # ComfyUI portable full path
 """
 
@@ -465,10 +465,25 @@ def verify() -> bool:
         if r.returncode == 0:
             print(f"  OK    {label}")
         else:
-            err_lines = (r.stderr + r.stdout).strip().splitlines()
+            err_text  = (r.stderr + r.stdout).strip()
+            err_lines = err_text.splitlines()
             last_err  = err_lines[-1] if err_lines else "unknown error"
             print(f"  FAIL  {label}")
             print(f"        {last_err}")
+
+            # Known issue: torchaudio version incompatibility with whisperx.
+            # torchaudio.AudioMetaData was moved between versions. whisperx
+            # references the old location on some torchaudio builds.
+            # Re-running setup_gpu typically resolves this after torch is
+            # correctly installed, as it triggers a whisperx reinstall.
+            if label == "whisperx" and "AudioMetaData" in err_text:
+                print()
+                print(f"        This is a known torchaudio/whisperx compatibility issue.")
+                print(f"        Fix: re-run this script — whisperx will be reinstalled")
+                print(f"        against the correct torchaudio version.")
+                print(f"        If it persists:")
+                print(f"          pip install --upgrade --no-user whisperx")
+
             all_ok = False
     return all_ok
 
@@ -558,7 +573,7 @@ def main() -> int:
         print(
             f"{TAG}   No prior install found. Defaulting to {FALLBACK_CUDA_TAG}.\n"
             f"{TAG}   If this is wrong, re-run with:\n"
-            f"{TAG}     python -m pipeline.setup_gpu  (then edit the log and re-run)"
+            f"{TAG}     python -m deep_whisper.pipeline.setup_gpu  (then edit the log and re-run)"
         )
 
     else:
