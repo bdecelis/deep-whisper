@@ -115,101 +115,107 @@ Audio file
 
 ## Installation
 
-### Step 1 — Install PyTorch with the correct CUDA build
-
-PyTorch must be installed with a CUDA-specific build. The key is to match the **CUDA version already in use by your Python environment**, not necessarily the highest version your hardware supports. These can differ — ComfyUI, for example, may be pinned to a specific CUDA version.
-
-**If torch is already installed** (e.g. you are installing into a ComfyUI environment), check which CUDA version it uses:
-
-```powershell
-python -c "import torch; print(torch.version.cuda)"
-# e.g. "12.1" → use cu121
-```
-
-**If torch is not yet installed** (fresh environment), check your driver's supported ceiling:
-
-```powershell
-nvidia-smi
-# Look for "CUDA Version: X.Y" in the top-right corner
-```
-
-Then install PyTorch with the matching build tag:
-
-| CUDA version | Install command |
-|---|---|
-| 12.8 | `pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128` |
-| 12.6 | `pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu126` |
-| 12.4 | `pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124` |
-| 12.1 | `pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121` |
-| 11.8 | `pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118` |
-
-Use the tag that exactly matches `torch.version.cuda` when possible. If the exact version isn't available as a PyTorch tag, use the nearest lower one.
-
-### Step 2 — Install cuDNN 8 (Windows only)
-
-CTranslate2 (the engine behind faster-whisper) requires cuDNN 8 on Windows. It does **not** bundle it, and cuDNN 9 will **not** work — CTranslate2 4.x specifically looks for the v8 DLL naming convention (`cudnn64_8.dll` etc).
-
-`install.ps1` handles this automatically. If you are installing manually, run:
-
-```powershell
-pip install nvidia-cudnn-cu12==8.9.7.29
-```
-
-Then copy the three required DLLs into the CTranslate2 package directory:
-
-```powershell
-# Find the site-packages directory
-python -c "import site; print(site.getsitepackages()[0])"
-# DLLs will be at: <site-packages>\nvidia\cudnn\bin\
-
-# Find the ctranslate2 directory to copy them into
-python -c "import ctranslate2, os; print(os.path.dirname(ctranslate2.__file__))"
-
-# Copy these three files:
-#   cudnn64_8.dll
-#   cudnn_ops_infer64_8.dll
-#   cudnn_cnn_infer64_8.dll
-```
-
-> If you see `Could not load library cudnn_ops_infer64_8.dll` at runtime, this step was missed or the DLLs are not where CTranslate2 can find them.
-
-### Step 3 — Install deep-whisper
+### The short version
 
 ```powershell
 pip install deep-whisper
+deep-whisper-setup
 ```
 
-Or directly from GitHub (always gets the latest commit):
+That's it. `deep-whisper-setup` is a command that becomes available the
+moment `pip install` finishes. It detects your CUDA version automatically,
+installs PyTorch, faster-whisper, whisperx, and cuDNN (Windows), and handles
+all the known issues described below. Run `python test_env.py` afterward to
+confirm everything is working.
+
+> **ComfyUI users:** If you are installing via `ComfyUI-BDC_DeepWhisper`,
+> you do not need to do any of this — `install.py` in that package handles
+> everything automatically when ComfyUI Manager installs the node.
+
+---
+
+### What `deep-whisper-setup` does
+
+The GPU setup cannot be done safely by `pip install` alone because
+`whisperx` — one of the required packages — pulls in a CPU-only PyTorch
+as a transitive dependency, silently overwriting any CUDA-capable build
+already in your environment. `deep-whisper-setup` handles this by:
+
+1. Fixing any packages with broken pip metadata before resolution starts
+2. Detecting the CUDA version in use by your Python environment
+3. Installing PyTorch with the correct CUDA build if needed
+4. Installing faster-whisper
+5. Installing whisperx, then automatically detecting and repairing any
+   torch CUDA overwrite
+6. Copying cuDNN 8 DLLs into the CTranslate2 package directory (Windows only)
+7. Running a final verification pass
+
+If anything goes wrong, the output tells you exactly what the problem is
+and what command to run to fix it.
+
+---
+
+### Installing from GitHub (latest commit)
+
 ```powershell
 pip install git+https://github.com/bdecelis/deep-whisper.git
+deep-whisper-setup
 ```
 
-Or for local development (editable install — changes to source are reflected immediately):
+### Local development install
+
 ```powershell
 git clone https://github.com/bdecelis/deep-whisper.git
 cd deep-whisper
 pip install -e .
+deep-whisper-setup
 ```
 
-#### Recommended pip switches
+The editable install (`-e .`) means changes to `pipeline/` source are
+reflected immediately without reinstalling.
 
-Always use `--no-user` when installing into a specific Python environment
-such as ComfyUI's embedded Python. Without it, pip scans your user
-site-packages during dependency resolution and may fail on stale or
-incompatible packages installed there by unrelated software.
+### Targeting a specific Python environment
+
+If you have multiple Python environments (conda, venv, ComfyUI portable),
+always run both commands with the same Python:
 
 ```powershell
-# Targeting ComfyUI's embedded Python
-.\python_embeded\python.exe -m pip install --no-user deep-whisper
+# ComfyUI portable — both commands must use the same Python
+.\python_embeded\python.exe -m pip install deep-whisper
+.\python_embeded\python.exe -m pipeline.setup_gpu
 
-# From GitHub
-.\python_embeded\python.exe -m pip install --no-user ^
-    git+https://github.com/bdecelis/deep-whisper.git
+# venv — activate first, then use the defaults
+pip install deep-whisper
+deep-whisper-setup
+
+# Conda
+conda activate your_env
+pip install deep-whisper
+deep-whisper-setup
 ```
 
-#### Known pip issue: pytorch-lightning invalid requirement
+---
 
-If you see this error:
+### Verifying the installation
+
+```powershell
+python tests/test_env.py
+```
+
+All checks must pass before running the pipeline. On first use, model
+weights (~4 GB) are downloaded and cached locally.
+
+> **If you see `Numba needs NumPy 2.2 or less`:**
+> `pip install "numpy>=1.24,<2.3"`
+
+---
+
+### Known issues and manual fixes
+
+These are handled automatically by `deep-whisper-setup`. This section is
+for anyone who encounters them in other contexts.
+
+#### pytorch-lightning invalid requirement
 
 ```
 error: invalid-installed-package
@@ -218,44 +224,26 @@ Cannot process installed package pytorch-lightning 1.7.7 ...
   .* suffix can only be used with `==` or `!=` operators
 ```
 
-`pytorch-lightning < 2.0.0` ships with a malformed version specifier that
-pip 24.1+ rejects during dependency resolution. This persists **even with
-`--no-user`** when the broken package is in user site-packages that ComfyUI
-(or another custom node) has explicitly added to `sys.path`. pip inherits
-the parent process's `sys.path` and sees the broken package regardless.
+`pytorch-lightning < 2.0.0` has a malformed version specifier that pip 24.1+
+rejects. This can persist even with `--no-user` when the broken package is in
+user site-packages that has been explicitly added to `sys.path`.
 
-**The correct fix is `PYTHONNOUSERSITE=1`**, set as an environment variable
-before invoking pip. This prevents Python from adding user site-packages to
-`sys.path` in the pip subprocess before resolution begins:
-
+**Fix:**
 ```powershell
-# PowerShell — set for the current session before pip calls
+# Set before any pip call to isolate pip from user site-packages
 $env:PYTHONNOUSERSITE = "1"
-python -m pip install deep-whisper
-```
 
-**Or fix the broken package directly:**
-```powershell
-# Option A: upgrade to a version with valid metadata
+# Then upgrade or remove the broken package
 python -m pip install "pytorch-lightning>=2.0.0"
-
-# Option B: remove it (if nothing else needs it)
-python -m pip uninstall pytorch-lightning -y
+# or: python -m pip uninstall pytorch-lightning -y
 ```
 
-`install.ps1` and `ComfyUI-BDC_DeepWhisper/install.py` both set
-`PYTHONNOUSERSITE=1` and handle this automatically before any dependency
-resolution runs.
+#### whisperx overwrites CUDA torch
 
-#### Known issue: whisperx overwrites CUDA torch
-
-whisperx pulls in a CPU-only torch as a transitive dependency, which can
-silently replace a CUDA-capable build. If `torch.cuda.is_available()`
-returns `False` after installing deep-whisper, force-reinstall torch with
-the correct CUDA build for your environment:
+If `torch.cuda.is_available()` returns `False` after installation:
 
 ```powershell
-# Check which CUDA version your environment was using
+# Check what CUDA version your environment expects
 python -c "import torch; print(torch.version.cuda)"
 
 # Force-reinstall with the matching tag (replace cu128 with your version)
@@ -264,9 +252,11 @@ pip install --force-reinstall --no-user ^
     torch torchaudio
 ```
 
-`install.ps1` and `ComfyUI-BDC_DeepWhisper/install.py` both detect and
-repair this automatically — the manual step above is only needed if you
-are installing deep-whisper directly without using those scripts.
+#### cuDNN not found (Windows)
+
+If you see `Could not load library cudnn_ops_infer64_8.dll`:
+CTranslate2 requires cuDNN 8 DLLs to be present in its package directory.
+Run `deep-whisper-setup` — it places them automatically.
 
 ### Step 4 — Install remaining pipeline dependencies
 
