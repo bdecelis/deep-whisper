@@ -126,12 +126,27 @@ deep-whisper-setup
 `pip install` finishes. It handles everything: CUDA detection, PyTorch,
 faster-whisper, whisperx, and cuDNN (Windows).
 
-> **`deep-whisper-setup` not found?** This means Python's `Scripts/`
-> directory isn't on your PATH — common with ComfyUI portable. Use the
-> module form instead, which always works:
+> **`deep-whisper-setup` not found?**
+>
+> This is expected with ComfyUI portable. The portable install does not
+> add `python_embeded\Scripts\` to your system PATH, so console scripts
+> installed there can't be found by name. You have three options:
+>
 > ```powershell
-> python -m pipeline.setup_gpu
+> # Option A — module invocation (always works, recommended for ComfyUI)
+> .\python_embeded\python.exe -m pipeline.setup_gpu
+>
+> # Option B — full path to the installed script
+> .\python_embeded\Scripts\deep-whisper-setup.exe
+>
+> # Option C — add Scripts/ to PATH for this terminal session only
+> $env:PATH += ";$PWD\python_embeded\Scripts"
+> deep-whisper-setup
 > ```
+>
+> Option A (`-m pipeline.setup_gpu`) is the most reliable and works in
+> every environment. `deep-whisper-setup` is a convenience shortcut for
+> standard Python installs where `Scripts/` is already on PATH.
 
 Run `python tests/test_env.py` afterward to confirm everything is working.
 
