@@ -29,7 +29,7 @@ Order is load-bearing. Each step assumes previous steps have already fired.
 
 Usage
 -----
-    from pipeline.normalise import normalise_segments, normalise_text
+    from deep_whisper.pipeline.normalise import normalise_segments, normalise_text
 
     segments = normalise_segments(segments, language="en")
     text     = normalise_text("Dr. Smith used GPT-4", language="en")
