@@ -176,11 +176,7 @@ python -c "import ctranslate2, os; print(os.path.dirname(ctranslate2.__file__))"
 
 ### Step 3: Install deep-whisper
 
-```powershell
-pip install deep-whisper
-```
-
-Or directly from GitHub:
+Install directly from GitHub:
 ```powershell
 pip install git+https://github.com/bdecelis/deep-whisper.git
 ```
@@ -191,6 +187,34 @@ git clone https://github.com/bdecelis/deep-whisper.git
 cd deep-whisper
 pip install -e .
 ```
+
+#### Recommended pip switches
+
+Always use `--no-user` when installing into a specific Python environment
+such as ComfyUI's embedded Python. Without it, pip scans your user
+site-packages during dependency resolution and may fail on stale or
+incompatible packages installed there by unrelated software.
+
+```powershell
+# From GitHub
+.\python_embeded\python.exe -m pip install --no-user ^
+    git+https://github.com/bdecelis/deep-whisper.git
+```
+
+#### Known pip issue: pytorch-lightning invalid requirement
+
+If you see this error:
+
+```
+error: invalid-installed-package
+Cannot process installed package pytorch-lightning 1.7.7 ...
+  torch (>=1.9.*)
+  .* suffix can only be used with `==` or `!=` operators
+```
+
+An old version of `pytorch-lightning` in your user site-packages has a
+malformed version specifier that pip 24.1+ rejects. The fix is `--no-user`
+as shown above — it prevents pip from scanning user site-packages entirely.
 
 ### Step 4: Install remaining pipeline dependencies
 
