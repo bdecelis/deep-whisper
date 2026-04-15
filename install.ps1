@@ -185,6 +185,18 @@ if ($CudaTag -ne "") {
 $torchIndexUrl = "https://download.pytorch.org/whl/$CudaTag"
 
 # ---------------------------------------------------------------------------
+# Isolate pip from user site-packages for the rest of this script
+# ---------------------------------------------------------------------------
+# ComfyUI (and some custom nodes) explicitly add the user site-packages
+# directory to sys.path via sys.path.append(). pip inherits this and sees
+# any broken packages there during dependency resolution — even with --no-user,
+# which only controls install targets, not what pip can see.
+# PYTHONNOUSERSITE=1 prevents Python from adding user site-packages to
+# sys.path in every subprocess we spawn from here on.
+$env:PYTHONNOUSERSITE = "1"
+Write-Host "      PYTHONNOUSERSITE=1  (user site-packages isolated from pip resolution)" -ForegroundColor Gray
+
+# ---------------------------------------------------------------------------
 # Pre-flight: fix known broken packages before pip resolves anything
 # ---------------------------------------------------------------------------
 # pytorch-lightning < 2.0.0 ships with a malformed version specifier
@@ -453,3 +465,6 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "Installation complete. Run test_env.py to confirm end-to-end." -ForegroundColor Green
 Write-Host ""
+
+# Restore environment
+Remove-Item Env:PYTHONNOUSERSITE -ErrorAction SilentlyContinue
