@@ -170,11 +170,18 @@ the full path to ComfyUI's Python for both commands:
 
 ### Why two steps?
 
-`pip install deep-whisper` alone is not sufficient because `whisperx` — one
-of the required GPU packages — pulls in a CPU-only PyTorch as a transitive
-dependency, silently overwriting any CUDA build already in your environment.
+`pip install deep-whisper` alone is not sufficient for two reasons:
 
-`deep-whisper-setup` (or `python -m deep_whisper.pipeline.setup_gpu`) handles this by:
+1. **`silero-vad`** (a required dependency) declares its own `torch`
+   requirement. pip may resolve this by installing a CPU-only torch,
+   silently overwriting any CUDA build already in your environment — even
+   before whisperx is involved.
+
+2. **`whisperx`** (a GPU-only dependency) also overwrites the CUDA torch
+   build and is intentionally excluded from `pip install deep-whisper` to
+   keep the base install safe.
+
+`python -m deep_whisper.pipeline.setup_gpu` handles both of these by:
 
 1. Fixing packages with broken pip metadata before resolution starts
 2. Detecting the CUDA version in use by this Python environment
@@ -229,8 +236,11 @@ This section is for reference if you need to fix things manually.
 
 #### torch CUDA not available after install
 
-whisperx overwrites the CUDA torch build as a side effect. If
-`torch.cuda.is_available()` returns `False`, re-run the setup:
+`pip install deep-whisper` can overwrite the CUDA torch build in two ways:
+`silero-vad` (a required dependency) and `whisperx` (the alignment library)
+both declare torch dependencies that pip may resolve to a CPU-only build.
+
+Re-run the setup script — it detects and repairs this automatically:
 
 ```powershell
 python -m deep_whisper.pipeline.setup_gpu
