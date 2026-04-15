@@ -134,7 +134,7 @@ faster-whisper, whisperx, and cuDNN (Windows).
 >
 > ```powershell
 > # Option A — module invocation (always works, recommended for ComfyUI)
-> .\python_embeded\python.exe -m pipeline.setup_gpu
+> .\python_embeded\python.exe -m deep_whisper.pipeline.setup_gpu
 >
 > # Option B — full path to the installed script
 > .\python_embeded\Scripts\deep-whisper-setup.exe
@@ -144,7 +144,7 @@ faster-whisper, whisperx, and cuDNN (Windows).
 > deep-whisper-setup
 > ```
 >
-> Option A (`-m pipeline.setup_gpu`) is the most reliable and works in
+> Option A (`-m deep_whisper.pipeline.setup_gpu`) is the most reliable and works in
 > every environment. `deep-whisper-setup` is a convenience shortcut for
 > standard Python installs where `Scripts/` is already on PATH.
 
@@ -163,7 +163,7 @@ the full path to ComfyUI's Python for both commands:
 
 ```powershell
 .\python_embeded\python.exe -m pip install --no-user deep-whisper
-.\python_embeded\python.exe -m pipeline.setup_gpu
+.\python_embeded\python.exe -m deep_whisper.pipeline.setup_gpu
 ```
 
 ---
@@ -174,7 +174,7 @@ the full path to ComfyUI's Python for both commands:
 of the required GPU packages — pulls in a CPU-only PyTorch as a transitive
 dependency, silently overwriting any CUDA build already in your environment.
 
-`deep-whisper-setup` (or `python -m pipeline.setup_gpu`) handles this by:
+`deep-whisper-setup` (or `python -m deep_whisper.pipeline.setup_gpu`) handles this by:
 
 1. Fixing packages with broken pip metadata before resolution starts
 2. Detecting the CUDA version in use by this Python environment
@@ -191,7 +191,7 @@ dependency, silently overwriting any CUDA build already in your environment.
 
 ```powershell
 pip install git+https://github.com/bdecelis/deep-whisper.git
-python -m pipeline.setup_gpu
+python -m deep_whisper.pipeline.setup_gpu
 ```
 
 ### Local development install
@@ -200,10 +200,10 @@ python -m pipeline.setup_gpu
 git clone https://github.com/bdecelis/deep-whisper.git
 cd deep-whisper
 pip install -e .
-python -m pipeline.setup_gpu
+python -m deep_whisper.pipeline.setup_gpu
 ```
 
-The editable install (`-e .`) means changes to `pipeline/` are reflected
+The editable install (`-e .`) means changes to `deep_whisper/pipeline/` are reflected
 immediately without reinstalling.
 
 ---
@@ -224,7 +224,7 @@ weights (~4 GB) are downloaded and cached locally.
 
 ### Known issues and manual fixes
 
-These are handled automatically by `python -m pipeline.setup_gpu`.
+These are handled automatically by `python -m deep_whisper.pipeline.setup_gpu`.
 This section is for reference if you need to fix things manually.
 
 #### torch CUDA not available after install
@@ -233,7 +233,7 @@ whisperx overwrites the CUDA torch build as a side effect. If
 `torch.cuda.is_available()` returns `False`, re-run the setup:
 
 ```powershell
-python -m pipeline.setup_gpu
+python -m deep_whisper.pipeline.setup_gpu
 ```
 
 Or manually:
@@ -265,7 +265,7 @@ python -m pip install "pytorch-lightning>=2.0.0"
 
 #### Changing the CUDA version or forcing a fresh install
 
-`python -m pipeline.setup_gpu` writes a log file next to the installed
+`python -m deep_whisper.pipeline.setup_gpu` writes a log file next to the installed
 package after each run. On subsequent runs it reads the last recorded
 `cuda_tag` from this log as a fallback when live detection is unavailable.
 
@@ -273,14 +273,14 @@ The log file is a plain text file — you can open it in any text editor:
 
 ```
 # Find the log path
-python -c "from pipeline.setup_gpu import log_path; print(log_path())"
+python -c "from deep_whisper.pipeline.setup_gpu import log_path; print(log_path())"
 ```
 
 **To use a different CUDA version:** edit the `cuda_tag` line in the log
 to the tag you want (e.g. change `cu128` to `cu121`), then re-run:
 
 ```
-python -m pipeline.setup_gpu
+python -m deep_whisper.pipeline.setup_gpu
 ```
 
 **To force completely fresh detection** (ignore all prior state): delete
@@ -291,7 +291,7 @@ from scratch.
 
 If you see `Could not load library cudnn_ops_infer64_8.dll`:
 ```powershell
-python -m pipeline.setup_gpu   # handles this automatically
+python -m deep_whisper.pipeline.setup_gpu   # handles this automatically
 ```
 
 ### Step 4 — Install remaining pipeline dependencies
@@ -358,7 +358,7 @@ python -c "import sys; print(sys.executable)"
 
 ```python
 import json
-from pipeline import run
+from deep_whisper import run
 
 result = run("my_audio.wav")
 print(result["transcript"])
@@ -368,12 +368,12 @@ print(json.dumps(result, indent=2))
 ### Step-by-step (more control)
 
 ```python
-from pipeline.audio       import load_audio, normalize_audio
-from pipeline.vad         import get_speech_chunks
-from pipeline.transcribe  import transcribe_chunks
-from pipeline.normalise   import normalise_segments
-from pipeline.align       import align_segments
-from pipeline.postprocess import build_output, serialise
+from deep_whisper.pipeline.audio       import load_audio, normalize_audio
+from deep_whisper.pipeline.vad         import get_speech_chunks
+from deep_whisper.pipeline.transcribe  import transcribe_chunks
+from deep_whisper.pipeline.normalise   import normalise_segments
+from deep_whisper.pipeline.align       import align_segments
+from deep_whisper.pipeline.postprocess import build_output, serialise
 
 # Load and prepare audio
 audio  = normalize_audio(load_audio("my_audio.wav"))
@@ -534,7 +534,7 @@ If you have your own transcript of the audio, pass it as the prompt — Whisper 
 If you already have a transcript and only need timestamps added, deep-whisper has a dedicated path for this. Whisper still runs on the audio (for acoustic grounding), but your transcript wins on vocabulary, capitalisation, and phrasing:
 
 ```python
-from pipeline.reconcile  import reconcile_segments
+from deep_whisper.pipeline.reconcile  import reconcile_segments
 
 # Run transcription as normal first
 segments = transcribe_chunks(chunks, initial_prompt=your_transcript)
@@ -644,7 +644,9 @@ Changes to `pipeline/` are reflected immediately without reinstalling.
 
 ```
 deep-whisper/
-├── pipeline/
+├── deep_whisper/
+│   ├── __init__.py
+│   └── pipeline/
 │   ├── __init__.py       ← public API + run() entry point
 │   ├── config.py
 │   ├── utils.py
