@@ -27,7 +27,7 @@ The segment-level timestamps are not affected.
 
 Usage
 -----
-    from pipeline.align import align_segments
+    from deep_whisper.pipeline.align import align_segments
 
     aligned = align_segments(segments, audio)
 """
@@ -37,14 +37,14 @@ import logging
 
 import numpy as np
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     ALIGN_MODEL_DEFAULT,
     LANGUAGE_DEFAULT,
     WORD_LOW_CONFIDENCE_THRESHOLD,
 )
-from pipeline.models import get_align_model
-from pipeline.utils import safe_confidence
-from pipeline.audio import get_energy_trough
+from deep_whisper.pipeline.models import get_align_model
+from deep_whisper.pipeline.utils import safe_confidence
+from deep_whisper.pipeline.audio import get_energy_trough
 
 logger = logging.getLogger(__name__)
 
