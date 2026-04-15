@@ -1,0 +1,93 @@
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
+[project]
+name        = "deep-whisper"
+version     = "0.1.0"
+description = "GPU-accelerated local audio transcription pipeline with word-level timestamps"
+readme      = "README.md"
+requires-python = ">=3.10"
+license     = { text = "MIT" }
+
+# ---------------------------------------------------------------------------
+# Runtime dependencies
+# ---------------------------------------------------------------------------
+# NOTE: PyTorch (torch, torchaudio) is intentionally excluded here.
+# It must be installed separately with a CUDA-specific index URL — see
+# INSTALL.md or requirements.txt for the correct command for your driver.
+#
+# All other packages below are CUDA-agnostic and install normally.
+dependencies = [
+    # Transcription
+    "faster-whisper>=1.0.0",
+
+    # Alignment (install AFTER torch/torchaudio)
+    "whisperx>=3.0.0",
+
+    # Voice activity detection
+    "silero-vad>=5.0.0",
+
+    # Audio I/O and signal processing
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+
+    # Text normalisation
+    "num2words>=0.5.13",
+
+    # Transcript reconciliation
+    "diff-match-patch>=20230430",
+]
+
+# ---------------------------------------------------------------------------
+# Optional dependency groups
+# ---------------------------------------------------------------------------
+[project.optional-dependencies]
+
+# Development tools: testing only (no linting/formatting — add your own)
+dev = [
+    "pytest>=7.0",
+    "pytest-timeout>=2.0",
+    "numpy>=1.24,<2.3",    # numba (librosa dep) requires <=2.2
+]
+
+# CUDA 11.8 build — run:
+#   pip install deep-whisper[cu118]
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+cu118 = []
+
+# CUDA 12.1 build — run:
+#   pip install deep-whisper[cu121]
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+cu121 = []
+
+# CUDA 12.4 build — run:
+#   pip install deep-whisper[cu124]
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+cu124 = []
+
+# CUDA 12.6 build — run:
+#   pip install deep-whisper[cu126]
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu126
+cu126 = []
+
+# ---------------------------------------------------------------------------
+# Package discovery
+# ---------------------------------------------------------------------------
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["pipeline*", "comfyui_nodes*"]
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout   = 60
+pythonpath = ["."]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
