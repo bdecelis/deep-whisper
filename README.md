@@ -254,7 +254,7 @@ python -c "import torch; print(torch.version.cuda)"
 # Force-reinstall with the matching tag (replace cu128 with your version)
 pip install --force-reinstall --no-user ^
     --index-url https://download.pytorch.org/whl/cu128 ^
-    torch torchaudio
+    torch torchaudio torchvision
 ```
 
 #### pytorch-lightning invalid requirement
