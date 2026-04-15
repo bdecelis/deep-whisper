@@ -386,7 +386,7 @@ if ($torchCudaOkBefore) {
             --force-reinstall `
             --index-url $torchIndexUrl `
             "torch==$torchBaseVersion" `
-            "torchaudio==$torchBaseVersion"
+            "torchaudio==$torchBaseVersion" `
             "torchvision==$torchBaseVersion"
 
         $torchFinal = & $PythonExe -c "import torch; print(torch.cuda.is_available())" 2>&1
