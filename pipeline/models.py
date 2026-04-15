@@ -21,7 +21,7 @@ Models are never explicitly unloaded — they remain resident for the session.
 
 Usage
 -----
-    from pipeline.models import get_whisper_model, get_align_model, get_vad_model
+    from deep_whisper.pipeline.models import get_whisper_model, get_align_model, get_vad_model
 
     whisper   = get_whisper_model()
     aligner, meta = get_align_model()
@@ -31,7 +31,7 @@ Usage
 from __future__ import annotations
 import logging
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     WHISPER_MODEL_DEFAULT,
     COMPUTE_TYPE_DEFAULT,
     ALIGN_MODEL_DEFAULT,
