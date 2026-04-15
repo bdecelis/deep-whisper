@@ -229,7 +229,7 @@ def ensure_torch(cuda_tag: str) -> bool:
         else:
             reason = f"CUDA {state['cuda_version']} build present but torch.cuda.is_available() = False"
         print(f"{TAG}   torch installed but broken: {reason}")
-        print(f"{TAG}   Reinstalling torch + torchaudio ({cuda_tag}) ...")
+        print(f"{TAG}   Reinstalling torch + torchaudio + torchvision ({cuda_tag}) ...")
     else:
         print(f"{TAG}   torch not installed. Installing ({cuda_tag}) ...")
 
@@ -286,7 +286,7 @@ def install_gpu_deps(torch_before: Optional[dict]) -> None:
                     [sys.executable, "-m", "pip", "install",
                      "--no-user", "--force-reinstall",
                      "--index-url", f"https://download.pytorch.org/whl/{tag}",
-                     f"torch=={base}", f"torchaudio=={base}"],
+                     f"torch=={base}", f"torchaudio=={base}"], f"torchvision=={base}"],
                     env=clean_env(),
                 )
                 final = get_torch_state()
