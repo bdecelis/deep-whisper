@@ -122,44 +122,61 @@ pip install deep-whisper
 deep-whisper-setup
 ```
 
-That's it. `deep-whisper-setup` is a command that becomes available the
-moment `pip install` finishes. It detects your CUDA version automatically,
-installs PyTorch, faster-whisper, whisperx, and cuDNN (Windows), and handles
-all the known issues described below. Run `python test_env.py` afterward to
-confirm everything is working.
+`deep-whisper-setup` is a command that becomes available the moment
+`pip install` finishes. It handles everything: CUDA detection, PyTorch,
+faster-whisper, whisperx, and cuDNN (Windows).
 
-> **ComfyUI users:** If you are installing via `ComfyUI-BDC_DeepWhisper`,
-> you do not need to do any of this — `install.py` in that package handles
-> everything automatically when ComfyUI Manager installs the node.
+> **`deep-whisper-setup` not found?** This means Python's `Scripts/`
+> directory isn't on your PATH — common with ComfyUI portable. Use the
+> module form instead, which always works:
+> ```powershell
+> python -m pipeline.setup_gpu
+> ```
+
+Run `python tests/test_env.py` afterward to confirm everything is working.
 
 ---
 
-### What `deep-whisper-setup` does
+### ComfyUI users
 
-The GPU setup cannot be done safely by `pip install` alone because
-`whisperx` — one of the required packages — pulls in a CPU-only PyTorch
-as a transitive dependency, silently overwriting any CUDA-capable build
-already in your environment. `deep-whisper-setup` handles this by:
+If you are installing via `ComfyUI-BDC_DeepWhisper`, you do not need any
+of this — `install.py` in that package handles everything automatically
+when ComfyUI Manager installs the node.
 
-1. Fixing any packages with broken pip metadata before resolution starts
-2. Detecting the CUDA version in use by your Python environment
-3. Installing PyTorch with the correct CUDA build if needed
+If you are installing into ComfyUI's portable Python manually, always use
+the full path to ComfyUI's Python for both commands:
+
+```powershell
+.\python_embeded\python.exe -m pip install --no-user deep-whisper
+.\python_embeded\python.exe -m pipeline.setup_gpu
+```
+
+---
+
+### Why two steps?
+
+`pip install deep-whisper` alone is not sufficient because `whisperx` — one
+of the required GPU packages — pulls in a CPU-only PyTorch as a transitive
+dependency, silently overwriting any CUDA build already in your environment.
+
+`deep-whisper-setup` (or `python -m pipeline.setup_gpu`) handles this by:
+
+1. Fixing packages with broken pip metadata before resolution starts
+2. Detecting the CUDA version in use by this Python environment
+3. Installing or repairing PyTorch with the correct CUDA build
 4. Installing faster-whisper
 5. Installing whisperx, then automatically detecting and repairing any
    torch CUDA overwrite
-6. Copying cuDNN 8 DLLs into the CTranslate2 package directory (Windows only)
+6. Copying cuDNN 8 DLLs into the CTranslate2 package directory (Windows)
 7. Running a final verification pass
-
-If anything goes wrong, the output tells you exactly what the problem is
-and what command to run to fix it.
 
 ---
 
-### Installing from GitHub (latest commit)
+### Installing from GitHub
 
 ```powershell
 pip install git+https://github.com/bdecelis/deep-whisper.git
-deep-whisper-setup
+python -m pipeline.setup_gpu
 ```
 
 ### Local development install
@@ -168,31 +185,11 @@ deep-whisper-setup
 git clone https://github.com/bdecelis/deep-whisper.git
 cd deep-whisper
 pip install -e .
-deep-whisper-setup
+python -m pipeline.setup_gpu
 ```
 
-The editable install (`-e .`) means changes to `pipeline/` source are
-reflected immediately without reinstalling.
-
-### Targeting a specific Python environment
-
-If you have multiple Python environments (conda, venv, ComfyUI portable),
-always run both commands with the same Python:
-
-```powershell
-# ComfyUI portable — both commands must use the same Python
-.\python_embeded\python.exe -m pip install deep-whisper
-.\python_embeded\python.exe -m pipeline.setup_gpu
-
-# venv — activate first, then use the defaults
-pip install deep-whisper
-deep-whisper-setup
-
-# Conda
-conda activate your_env
-pip install deep-whisper
-deep-whisper-setup
-```
+The editable install (`-e .`) means changes to `pipeline/` are reflected
+immediately without reinstalling.
 
 ---
 
@@ -212,38 +209,21 @@ weights (~4 GB) are downloaded and cached locally.
 
 ### Known issues and manual fixes
 
-These are handled automatically by `deep-whisper-setup`. This section is
-for anyone who encounters them in other contexts.
+These are handled automatically by `python -m pipeline.setup_gpu`.
+This section is for reference if you need to fix things manually.
 
-#### pytorch-lightning invalid requirement
+#### torch CUDA not available after install
 
-```
-error: invalid-installed-package
-Cannot process installed package pytorch-lightning 1.7.7 ...
-  torch (>=1.9.*)
-  .* suffix can only be used with `==` or `!=` operators
-```
-
-`pytorch-lightning < 2.0.0` has a malformed version specifier that pip 24.1+
-rejects. This can persist even with `--no-user` when the broken package is in
-user site-packages that has been explicitly added to `sys.path`.
-
-**Fix:**
-```powershell
-# Set before any pip call to isolate pip from user site-packages
-$env:PYTHONNOUSERSITE = "1"
-
-# Then upgrade or remove the broken package
-python -m pip install "pytorch-lightning>=2.0.0"
-# or: python -m pip uninstall pytorch-lightning -y
-```
-
-#### whisperx overwrites CUDA torch
-
-If `torch.cuda.is_available()` returns `False` after installation:
+whisperx overwrites the CUDA torch build as a side effect. If
+`torch.cuda.is_available()` returns `False`, re-run the setup:
 
 ```powershell
-# Check what CUDA version your environment expects
+python -m pipeline.setup_gpu
+```
+
+Or manually:
+```powershell
+# Check what CUDA version this environment uses
 python -c "import torch; print(torch.version.cuda)"
 
 # Force-reinstall with the matching tag (replace cu128 with your version)
@@ -252,11 +232,52 @@ pip install --force-reinstall --no-user ^
     torch torchaudio
 ```
 
+#### pytorch-lightning invalid requirement
+
+```
+error: invalid-installed-package
+Cannot process installed package pytorch-lightning 1.7.7 ...
+  .* suffix can only be used with `== ` or `!=` operators
+```
+
+`pytorch-lightning < 2.0.0` has invalid pip metadata. Fix before retrying:
+
+```powershell
+$env:PYTHONNOUSERSITE = "1"
+python -m pip install "pytorch-lightning>=2.0.0"
+# or: python -m pip uninstall pytorch-lightning -y
+```
+
+#### Changing the CUDA version or forcing a fresh install
+
+`python -m pipeline.setup_gpu` writes a log file next to the installed
+package after each run. On subsequent runs it reads the last recorded
+`cuda_tag` from this log as a fallback when live detection is unavailable.
+
+The log file is a plain text file — you can open it in any text editor:
+
+```
+# Find the log path
+python -c "from pipeline.setup_gpu import log_path; print(log_path())"
+```
+
+**To use a different CUDA version:** edit the `cuda_tag` line in the log
+to the tag you want (e.g. change `cu128` to `cu121`), then re-run:
+
+```
+python -m pipeline.setup_gpu
+```
+
+**To force completely fresh detection** (ignore all prior state): delete
+the log file, then re-run. The setup script will detect the CUDA version
+from scratch.
+
 #### cuDNN not found (Windows)
 
 If you see `Could not load library cudnn_ops_infer64_8.dll`:
-CTranslate2 requires cuDNN 8 DLLs to be present in its package directory.
-Run `deep-whisper-setup` — it places them automatically.
+```powershell
+python -m pipeline.setup_gpu   # handles this automatically
+```
 
 ### Step 4 — Install remaining pipeline dependencies
 
