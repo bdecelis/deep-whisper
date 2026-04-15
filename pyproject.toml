@@ -16,29 +16,28 @@ license     = { text = "MIT" }
 # ---------------------------------------------------------------------------
 # Runtime dependencies
 # ---------------------------------------------------------------------------
-# NOTE: PyTorch (torch, torchaudio) is intentionally excluded here.
-# It must be installed separately with a CUDA-specific index URL — see
-# INSTALL.md or requirements.txt for the correct command for your driver.
+# IMPORTANT: faster-whisper and whisperx are in the [gpu] optional group
+# rather than required dependencies. This prevents pip install from pulling
+# in whisperx as a transitive dependency and overwriting ComfyUI's CUDA
+# torch build with a CPU-only version.
 #
-# All other packages below are CUDA-agnostic and install normally.
+# Use install.ps1 (standalone) or ComfyUI-BDC_DeepWhisper/install.py
+# (ComfyUI) to install the full GPU stack with torch protection.
+#
+# PyTorch (torch, torchaudio) is excluded entirely — it must be installed
+# separately with a CUDA-specific index URL matching the target environment.
 dependencies = [
-    # Transcription
-    "faster-whisper>=1.0.0",
-
-    # Alignment (install AFTER torch/torchaudio)
-    "whisperx>=3.0.0",
-
-    # Voice activity detection
+    # Voice activity detection (CPU-only, safe to install via pip)
     "silero-vad>=5.0.0",
 
-    # Audio I/O and signal processing
+    # Audio I/O and signal processing (CPU-only, safe to install via pip)
     "librosa>=0.10.0",
     "soundfile>=0.12.0",
 
-    # Text normalisation
+    # Text normalisation (CPU-only, safe to install via pip)
     "num2words>=0.5.13",
 
-    # Transcript reconciliation
+    # Transcript reconciliation (CPU-only, safe to install via pip)
     "diff-match-patch>=20230430",
 ]
 
@@ -47,32 +46,28 @@ dependencies = [
 # ---------------------------------------------------------------------------
 [project.optional-dependencies]
 
-# Development tools: testing only (no linting/formatting — add your own)
+# GPU stack — install via install.ps1 or ComfyUI-BDC_DeepWhisper/install.py
+# NOT via pip install deep-whisper[gpu] directly, as whisperx overwrites
+# the CUDA torch build. The install scripts handle torch protection.
+gpu = [
+    "faster-whisper>=1.0.0",
+    "whisperx>=3.0.0",
+]
+
+# Development tools
 dev = [
     "pytest>=7.0",
     "pytest-timeout>=2.0",
     "numpy>=1.24,<2.3",    # numba (librosa dep) requires <=2.2
 ]
 
-# CUDA 11.8 build — run:
-#   pip install deep-whisper[cu118]
-#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+# CUDA wheel extras — these are informational markers only (empty groups).
+# Use install.ps1 to install the correct CUDA build automatically.
 cu118 = []
-
-# CUDA 12.1 build — run:
-#   pip install deep-whisper[cu121]
-#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 cu121 = []
-
-# CUDA 12.4 build — run:
-#   pip install deep-whisper[cu124]
-#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 cu124 = []
-
-# CUDA 12.6 build — run:
-#   pip install deep-whisper[cu126]
-#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu126
 cu126 = []
+cu128 = []
 
 # ---------------------------------------------------------------------------
 # Package discovery
@@ -85,9 +80,9 @@ include = ["pipeline*", "comfyui_nodes*"]
 # Tool configuration
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-timeout   = 60
-pythonpath = ["."]
+testpaths  = ["tests"]
+timeout    = 60
+pythonpath = ["."]        # makes pipeline/ importable from tests/ without editable install
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
