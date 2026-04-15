@@ -136,7 +136,7 @@ def main() -> int:
     banner("Stage 1 — load_audio + normalize_audio")
     try:
         t = time.perf_counter()
-        from pipeline.audio import load_audio, normalize_audio, get_duration
+        from deep_whisper.pipeline.audio import load_audio, normalize_audio, get_duration
         audio = normalize_audio(load_audio(str(audio_path)))
         elapsed = time.perf_counter() - t
         ok("load_audio",   f"shape={audio.shape}  dtype={audio.dtype}")
@@ -153,7 +153,7 @@ def main() -> int:
     banner("Stage 2 — get_speech_chunks  (VAD)")
     try:
         t = time.perf_counter()
-        from pipeline.vad import get_speech_chunks
+        from deep_whisper.pipeline.vad import get_speech_chunks
         chunks = get_speech_chunks(audio)
         elapsed = time.perf_counter() - t
         ok("chunks detected", str(len(chunks)))
@@ -172,7 +172,7 @@ def main() -> int:
     segments = []
     try:
         t = time.perf_counter()
-        from pipeline.transcribe import transcribe_chunks
+        from deep_whisper.pipeline.transcribe import transcribe_chunks
         initial_prompt = args.transcript or args.prompt
         segments = transcribe_chunks(
             chunks,
@@ -202,7 +202,7 @@ def main() -> int:
         banner("Stage 4 — reconcile_segments  (user transcript path)")
         try:
             t = time.perf_counter()
-            from pipeline.reconcile import reconcile_segments
+            from deep_whisper.pipeline.reconcile import reconcile_segments
             segments = reconcile_segments(args.transcript, segments)
             elapsed  = time.perf_counter() - t
             ok("reconcile time", f"{elapsed:.2f}s")
@@ -220,7 +220,7 @@ def main() -> int:
     banner("Stage 5 — normalise_segments")
     try:
         t = time.perf_counter()
-        from pipeline.normalise import normalise_segments
+        from deep_whisper.pipeline.normalise import normalise_segments
         norm_segments = normalise_segments(segments)
         elapsed = time.perf_counter() - t
         ok("normalise time", f"{elapsed:.2f}s")
@@ -245,7 +245,7 @@ def main() -> int:
     aligned = []
     try:
         t = time.perf_counter()
-        from pipeline.align import align_segments
+        from deep_whisper.pipeline.align import align_segments
         aligned = align_segments(
             segments,
             audio,
@@ -278,7 +278,7 @@ def main() -> int:
     banner("Stage 7 — build_output + serialise")
     try:
         t = time.perf_counter()
-        from pipeline.postprocess import build_output, serialise
+        from deep_whisper.pipeline.postprocess import build_output, serialise
         output  = build_output(
             aligned if aligned else segments,
             audio,
