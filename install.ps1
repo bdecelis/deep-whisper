@@ -234,11 +234,11 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # ---------------------------------------------------------------------------
-# Step 2 - install PyTorch + torchaudio (CUDA build)
+# Step 2 - install PyTorch + torchaudio + torchvision (CUDA build)
 # ---------------------------------------------------------------------------
-Write-Host "[2/6] Installing PyTorch + torchaudio ($CudaTag)..." -ForegroundColor Yellow
+Write-Host "[2/6] Installing PyTorch + torchaudio + torchvision ($CudaTag)..." -ForegroundColor Yellow
 Write-Host "      Index URL: $torchIndexUrl"
-& $PythonExe -m pip install --no-user torch torchaudio --index-url $torchIndexUrl
+& $PythonExe -m pip install --no-user torch torchaudio torchvision --index-url $torchIndexUrl
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyTorch installation failed. Check your internet connection and CUDA tag."
     exit 1
@@ -387,6 +387,7 @@ if ($torchCudaOkBefore) {
             --index-url $torchIndexUrl `
             "torch==$torchBaseVersion" `
             "torchaudio==$torchBaseVersion"
+            "torchvision==$torchBaseVersion"
 
         $torchFinal = & $PythonExe -c "import torch; print(torch.cuda.is_available())" 2>&1
         if ($torchFinal.Trim() -eq "True") {
@@ -434,6 +435,7 @@ $verifyLines = @(
     "    ('torch',            lambda: __import__('torch').__version__),",
     "    ('torch.cuda',       lambda: str(__import__('torch').cuda.is_available())),",
     "    ('torchaudio',       lambda: __import__('torchaudio').__version__),",
+    "    ('torchvision',      lambda: __import__('torchvision').__version__),",
     "    ('faster_whisper',   lambda: __import__('faster_whisper').__version__),",
     "    ('whisperx',         lambda: 'OK' if __import__('whisperx') else ''),",
     "    ('silero_vad',       lambda: 'OK' if __import__('silero_vad') else ''),",
