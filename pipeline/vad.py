@@ -22,7 +22,7 @@ Every yielded chunk is:
 
 Usage
 -----
-    from pipeline.vad import get_speech_chunks
+    from deep_whisper.pipeline.vad import get_speech_chunks
 
     chunks = get_speech_chunks(audio)
     for audio_slice, start_s in chunks:
@@ -34,13 +34,13 @@ import logging
 
 import numpy as np
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     SAMPLE_RATE,
     VAD_CHUNK_MAX_S,
     VAD_SEGMENT_MIN_S,
     VAD_PAUSE_SPLIT_S,
 )
-from pipeline.models import get_vad_model
+from deep_whisper.pipeline.models import get_vad_model
 
 logger = logging.getLogger(__name__)
 
