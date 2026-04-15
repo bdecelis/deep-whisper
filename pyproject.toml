@@ -70,8 +70,13 @@ cu126 = []
 cu128 = []
 
 # ---------------------------------------------------------------------------
-# Package discovery
+# Console scripts
 # ---------------------------------------------------------------------------
+# `deep-whisper-setup` becomes available immediately after pip install and
+# handles the full GPU stack installation (torch, faster-whisper, whisperx,
+# cuDNN on Windows) with all known-issue mitigations built in.
+[project.scripts]
+deep-whisper-setup = "pipeline.setup_gpu:main"
 [tool.setuptools.packages.find]
 where   = ["."]
 include = ["pipeline*", "comfyui_nodes*"]
