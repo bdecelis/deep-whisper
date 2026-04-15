@@ -2,7 +2,7 @@
 
 > GPU-accelerated local audio transcription with precise word-level timestamps.
 
-**deep-whisper** is a Python pipeline that takes an audio file and returns a structured transcript, with timestamps accurate to the millisecond at both word and sentence level, running entirely on your local machine. No API keys, no data leaving your machine, no usage costs.
+**deep-whisper** is a Python pipeline that takes an audio file and returns a structured transcript — with timestamps accurate to the millisecond at both word and sentence level — running entirely on your local machine. No API keys, no data leaving your machine, no usage costs.
 
 It is built to run efficiently on a consumer CUDA GPU (8 GB VRAM is sufficient) and is designed for clean spoken-word audio such as voiceovers, interviews, lectures, and narration.
 
@@ -32,12 +32,12 @@ It is built to run efficiently on a consumer CUDA GPU (8 GB VRAM is sufficient) 
 Given an audio file, deep-whisper produces:
 
 - **A full text transcript** of the spoken content
-- **Sentence-level timestamps**: when each sentence starts and ends
-- **Word-level timestamps**: when each individual word starts and ends
-- **Confidence scores**: how certain the pipeline is about each word and sentence
+- **Sentence-level timestamps** — when each sentence starts and ends
+- **Word-level timestamps** — when each individual word starts and ends
+- **Confidence scores** — how certain the pipeline is about each word and sentence
 - **Flags** for words or segments where the pipeline is uncertain
 
-All of this is returned as structured JSON, making it straightforward to consume from any downstream tool, subtitle generators, video editors, language model pipelines, or custom applications.
+All of this is returned as structured JSON, making it straightforward to consume from any downstream tool — subtitle generators, video editors, language model pipelines, or custom applications.
 
 ---
 
@@ -91,9 +91,9 @@ Audio file
 
 **Whisper** is the most capable open speech recognition model available. OpenAI's original implementation is slow; **faster-whisper** reimplements it using CTranslate2 and quantisation, giving ~4–6× faster inference at equivalent accuracy. The `large-v3-turbo` variant is a distilled model that is approximately 6× faster than `large-v3` with minimal accuracy loss on clean speech.
 
-**Forced CTC alignment** (via WhisperX's wav2vec2 integration) produces more precise word timestamps than Whisper's built-in attention-weight timestamps. Whisper guesses word timing from its attention patterns; forced alignment solves a constrained problem, given this text and this audio, find the exact frame where each phoneme occurs.
+**Forced CTC alignment** (via WhisperX's wav2vec2 integration) produces more precise word timestamps than Whisper's built-in attention-weight timestamps. Whisper guesses word timing from its attention patterns; forced alignment solves a constrained problem — given this text and this audio, find the exact frame where each phoneme occurs.
 
-**Energy trough boundary snapping** further tightens word boundaries by locating the nearest local energy minimum around each timestamp. Word transitions almost always coincide with reduced acoustic energy, so this is a low-cost refinement that adds real precision.
+**Energy trough boundary snapping** further tightens word boundaries by locating the nearest local energy minimum around each timestamp — word transitions almost always coincide with reduced acoustic energy, so this is a low-cost refinement that adds real precision.
 
 **Text normalisation before alignment** prevents a common silent failure: if the text says "$200" but the speaker said "two hundred dollars", the aligner cannot match phonemes correctly and timestamps drift. Normalising to spoken form first ensures text and audio match as closely as possible.
 
@@ -115,9 +115,9 @@ Audio file
 
 ## Installation
 
-### Step 1: Install PyTorch with the correct CUDA build
+### Step 1 — Install PyTorch with the correct CUDA build
 
-PyTorch must be installed with a CUDA-specific build. The key is to match the **CUDA version already in use by your Python environment**, not necessarily the highest version your hardware supports. These can differ. ComfyUI, for example, may be pinned to a specific CUDA version.
+PyTorch must be installed with a CUDA-specific build. The key is to match the **CUDA version already in use by your Python environment**, not necessarily the highest version your hardware supports. These can differ — ComfyUI, for example, may be pinned to a specific CUDA version.
 
 **If torch is already installed** (e.g. you are installing into a ComfyUI environment), check which CUDA version it uses:
 
@@ -145,12 +145,11 @@ Then install PyTorch with the matching build tag:
 
 Use the tag that exactly matches `torch.version.cuda` when possible. If the exact version isn't available as a PyTorch tag, use the nearest lower one.
 
-### Step 2: Install cuDNN 8 (Windows only)
+### Step 2 — Install cuDNN 8 (Windows only)
 
-CTranslate2 (the engine behind faster-whisper) requires cuDNN 8 on Windows. It does **not** bundle it, and cuDNN 9 will **not** work.
-CTranslate2 4.x specifically looks for the v8 DLL naming convention (`cudnn64_8.dll` etc).
+CTranslate2 (the engine behind faster-whisper) requires cuDNN 8 on Windows. It does **not** bundle it, and cuDNN 9 will **not** work — CTranslate2 4.x specifically looks for the v8 DLL naming convention (`cudnn64_8.dll` etc).
 
-`install.ps1` attempts to handle this automatically. If you are installing manually, run:
+`install.ps1` handles this automatically. If you are installing manually, run:
 
 ```powershell
 pip install nvidia-cudnn-cu12==8.9.7.29
@@ -174,27 +173,108 @@ python -c "import ctranslate2, os; print(os.path.dirname(ctranslate2.__file__))"
 
 > If you see `Could not load library cudnn_ops_infer64_8.dll` at runtime, this step was missed or the DLLs are not where CTranslate2 can find them.
 
-### Step 3: Install deep-whisper
+### Step 3 — Install deep-whisper
 
-Install directly from GitHub:
+```powershell
+pip install deep-whisper
+```
+
+Or directly from GitHub (always gets the latest commit):
 ```powershell
 pip install git+https://github.com/bdecelis/deep-whisper.git
 ```
 
-Or for local development (editable install, changes to source are reflected immediately):
+Or for local development (editable install — changes to source are reflected immediately):
 ```powershell
 git clone https://github.com/bdecelis/deep-whisper.git
 cd deep-whisper
 pip install -e .
 ```
 
-### Step 4: Install remaining pipeline dependencies
+#### Recommended pip switches
+
+Always use `--no-user` when installing into a specific Python environment
+such as ComfyUI's embedded Python. Without it, pip scans your user
+site-packages during dependency resolution and may fail on stale or
+incompatible packages installed there by unrelated software.
+
+```powershell
+# Targeting ComfyUI's embedded Python
+.\python_embeded\python.exe -m pip install --no-user deep-whisper
+
+# From GitHub
+.\python_embeded\python.exe -m pip install --no-user ^
+    git+https://github.com/bdecelis/deep-whisper.git
+```
+
+#### Known pip issue: pytorch-lightning invalid requirement
+
+If you see this error:
+
+```
+error: invalid-installed-package
+Cannot process installed package pytorch-lightning 1.7.7 ...
+  torch (>=1.9.*)
+  .* suffix can only be used with `==` or `!=` operators
+```
+
+`pytorch-lightning < 2.0.0` ships with a malformed version specifier that
+pip 24.1+ rejects during dependency resolution. This persists **even with
+`--no-user`** when the broken package is in user site-packages that ComfyUI
+(or another custom node) has explicitly added to `sys.path`. pip inherits
+the parent process's `sys.path` and sees the broken package regardless.
+
+**The correct fix is `PYTHONNOUSERSITE=1`**, set as an environment variable
+before invoking pip. This prevents Python from adding user site-packages to
+`sys.path` in the pip subprocess before resolution begins:
+
+```powershell
+# PowerShell — set for the current session before pip calls
+$env:PYTHONNOUSERSITE = "1"
+python -m pip install deep-whisper
+```
+
+**Or fix the broken package directly:**
+```powershell
+# Option A: upgrade to a version with valid metadata
+python -m pip install "pytorch-lightning>=2.0.0"
+
+# Option B: remove it (if nothing else needs it)
+python -m pip uninstall pytorch-lightning -y
+```
+
+`install.ps1` and `ComfyUI-BDC_DeepWhisper/install.py` both set
+`PYTHONNOUSERSITE=1` and handle this automatically before any dependency
+resolution runs.
+
+#### Known issue: whisperx overwrites CUDA torch
+
+whisperx pulls in a CPU-only torch as a transitive dependency, which can
+silently replace a CUDA-capable build. If `torch.cuda.is_available()`
+returns `False` after installing deep-whisper, force-reinstall torch with
+the correct CUDA build for your environment:
+
+```powershell
+# Check which CUDA version your environment was using
+python -c "import torch; print(torch.version.cuda)"
+
+# Force-reinstall with the matching tag (replace cu128 with your version)
+pip install --force-reinstall --no-user ^
+    --index-url https://download.pytorch.org/whl/cu128 ^
+    torch torchaudio
+```
+
+`install.ps1` and `ComfyUI-BDC_DeepWhisper/install.py` both detect and
+repair this automatically — the manual step above is only needed if you
+are installing deep-whisper directly without using those scripts.
+
+### Step 4 — Install remaining pipeline dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### Step 5: Verify the installation
+### Step 5 — Verify the installation
 
 ```powershell
 python test_env.py
@@ -209,7 +289,7 @@ All checks should pass before using the pipeline. On first run, model weights (~
 
 ### Using the automated installer
 
-`install.ps1` handles steps 1–4 automatically, CUDA detection, PyTorch, cuDNN, and all remaining dependencies, in the correct order:
+`install.ps1` handles steps 1–4 automatically — CUDA detection, PyTorch, cuDNN, and all remaining dependencies — in the correct order:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -240,7 +320,7 @@ python -c "import sys; print(sys.executable)"
 
 > **Note for ComfyUI users:** If you are installing deep-whisper via the
 > `ComfyUI-BDC_DeepWhisper` node, `install.py` in that repo handles this
-> automatically. You don't need to run `install.ps1` at all. This manual
+> automatically — you do not need to run `install.ps1` at all. This manual
 > process is only needed when installing `deep-whisper` as a standalone
 > package outside of ComfyUI.
 
@@ -357,14 +437,14 @@ The output is a JSON object with three main sections:
 
 | Field | Description |
 |---|---|
-| `transcript` | Full plain-text transcript. Always present regardless of timestamp level |
+| `transcript` | Full plain-text transcript — always present regardless of timestamp level |
 | `segments[].text` | Text of each sentence or clause |
 | `segments[].start/end` | Sentence-level timestamps in seconds |
 | `segments[].confidence` | Mean word confidence for the segment (0–1) |
 | `segments[].flagged` | `true` if Whisper detected possible silence or hallucination |
 | `words[].start/end` | Word-level timestamps in seconds |
 | `words[].low_confidence` | `true` if confidence < 0.6 |
-| `words` (top-level) | Flat chronological list. Only present for `timestamp_level` `"both"` or `"word"` |
+| `words` (top-level) | Flat chronological list — only present for `timestamp_level` `"both"` or `"word"` |
 
 ### Timestamp levels
 
@@ -372,7 +452,7 @@ Control how much timing information is included via the `timestamp_level` parame
 
 | Level | Segment timing | Word timing | Use when |
 |---|---|---|---|
-| `"both"` | ✅ | ✅ | Default: subtitles, word highlighting |
+| `"both"` | ✅ | ✅ | Default — subtitles, word highlighting |
 | `"segment"` | ✅ | ❌ | Simpler subtitles, speaker attribution |
 | `"word"` | ✅ | ✅ | Same as `"both"` + flat word list |
 | `"none"` | ❌ | ❌ | Plain transcript only |
@@ -398,14 +478,14 @@ Controls Whisper's beam search. On clean speech the difference is rarely audible
 | Preset | Speed | Use when |
 |---|---|---|
 | `"fast"` | ⚡⚡⚡ | Prototyping, long files, clean audio |
-| `"balanced"` | ⚡⚡ | **Default**: best general choice |
+| `"balanced"` | ⚡⚡ | **Default** — best general choice |
 | `"accurate"` | ⚡ | Maximum accuracy, short files |
 
 ### Alignment model
 
 | Model | VRAM | Notes |
 |---|---|---|
-| `"wav2vec2-base-960h"` | ~0.5 GB | **Default**: sufficient for clean speech |
+| `"wav2vec2-base-960h"` | ~0.5 GB | **Default** — sufficient for clean speech |
 | `"wav2vec2-large-960h-lv60"` | ~1.5 GB | Better on fast or complex speech |
 
 ### Context prompt
@@ -415,11 +495,11 @@ Always provide a prompt when you have domain context. It anchors Whisper's vocab
 ```python
 transcribe_chunks(
     chunks,
-    initial_prompt="Hello, and welcome to deep-whisper.",
+    initial_prompt="A product demo for an AI image generation tool called ComfyUI.",
 )
 ```
 
-If you have your own transcript of the audio, pass it as the prompt, Whisper will use it to guide its vocabulary choices.
+If you have your own transcript of the audio, pass it as the prompt — Whisper will use it to guide its vocabulary choices.
 
 ---
 
@@ -475,7 +555,7 @@ Models are loaded once and cached for the session. On a typical run, peak VRAM u
 | PyTorch runtime | ~0.5 GB |
 | **Total** | **~4.5 GB** |
 
-This leaves ~3.5 GB of headroom on an 8 GB card, sufficient to upgrade to `wav2vec2-large` (~1.5 GB) or `large-v3` (~4.5 GB) if needed.
+This leaves ~3.5 GB of headroom on an 8 GB card — sufficient to upgrade to `wav2vec2-large` (~1.5 GB) or `large-v3` (~4.5 GB) if needed.
 
 ---
 
@@ -484,16 +564,16 @@ This leaves ~3.5 GB of headroom on an 8 GB card, sufficient to upgrade to `wav2v
 - **Files of any length** are handled by splitting audio into 20–28 second chunks at natural speech pauses before transcription. VRAM usage does not increase with file length.
 - **`"fast"` quality** uses greedy decoding (no beam search) and is typically 90–95% as accurate as `"accurate"` on clean speech, at significantly higher speed.
 - **Model weights are downloaded on first run** (~4 GB total) and cached locally. Subsequent runs are instant.
-- **Rolling prompt chaining**: the last ~224 tokens of each chunk's transcript are fed as context to the next chunk, significantly reducing errors at chunk boundaries where most transcription mistakes occur.
+- **Rolling prompt chaining** — the last ~224 tokens of each chunk's transcript are fed as context to the next chunk, significantly reducing errors at chunk boundaries where most transcription mistakes occur.
 
 ---
 
 ## Limitations
 
-- **Clean speech only**: background music, overlapping speakers, and significant noise will degrade accuracy. Deep-whisper does not include audio enhancement or speaker diarisation.
-- **CUDA required**: CPU inference is not supported. The pipeline is designed around GPU memory management.
-- **English optimised**: the pipeline works for other languages supported by Whisper, but the text normalisation rules (`normalise.py`) are English-only. Numbers and abbreviations in other languages will not be expanded before alignment, which may reduce timestamp accuracy on numeric or abbreviated content.
-- **No real-time processing**: the pipeline processes complete files, not streams.
+- **Clean speech only** — background music, overlapping speakers, and significant noise will degrade accuracy. Deep-whisper does not include audio enhancement or speaker diarisation.
+- **CUDA required** — CPU inference is not supported. The pipeline is designed around GPU memory management.
+- **English optimised** — the pipeline works for other languages supported by Whisper, but the text normalisation rules (`normalise.py`) are English-only. Numbers and abbreviations in other languages will not be expanded before alignment, which may reduce timestamp accuracy on numeric or abbreviated content.
+- **No real-time processing** — the pipeline processes complete files, not streams.
 
 ---
 
@@ -501,7 +581,7 @@ This leaves ~3.5 GB of headroom on an 8 GB card, sufficient to upgrade to `wav2v
 
 deep-whisper is the backend package for the **ComfyUI-BDC_DeepWhisper** custom node collection, which exposes the full pipeline as composable nodes within a ComfyUI graph.
 
-→ [ComfyUI-BDC_DeepWhisper](https://github.com/bdecelis/ComfyUI-BDC_DeepWhisper)
+→ [ComfyUI-BDC_DeepWhisper](https://github.com/YOUR_USERNAME/ComfyUI-BDC_DeepWhisper)
 
 If you are using deep-whisper through ComfyUI, follow the installation instructions in that repository instead.
 
@@ -516,7 +596,7 @@ pip install pytest pytest-timeout
 pytest tests/
 ```
 
-All pipeline modules have full test coverage using stubbed GPU dependencies. Tests run without a GPU.
+All pipeline modules have full test coverage using stubbed GPU dependencies — tests run without a GPU.
 
 ### Environment verification
 
@@ -551,13 +631,10 @@ deep-whisper/
 │   ├── align.py
 │   └── postprocess.py
 ├── tests/
-│   ├── test_env.py
-│   ├── test_pipeline.py
-│   ├── test_audio.mp3    ← Sample speech audio for testing the pipeline test_pipeline.py
+├── test_env.py
 ├── requirements.txt
 ├── pyproject.toml
 └── install.ps1
-
 ```
 
 ---
@@ -578,6 +655,7 @@ deep-whisper, please read [LEGAL.md](LEGAL.md), which covers:
 ---
 
 ## Acknowledgements
+
 
 deep-whisper is built on the following open-source projects:
 
