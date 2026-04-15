@@ -452,7 +452,24 @@ def verify() -> bool:
          f"is_available={{torch.cuda.is_available()}}'"),
         ("faster-whisper",
          "import faster_whisper"),
+        # Apply the torchaudio AudioMetaData shim before importing whisperx,
+        # exactly as deep_whisper.pipeline.__init__ does at runtime.
         ("whisperx",
+         "import torchaudio\n"
+         "if not hasattr(torchaudio, 'AudioMetaData'):\n"
+         "    try:\n"
+         "        from torchaudio.backend.common import AudioMetaData\n"
+         "        torchaudio.AudioMetaData = AudioMetaData\n"
+         "    except ImportError:\n"
+         "        import dataclasses\n"
+         "        @dataclasses.dataclass\n"
+         "        class AudioMetaData:\n"
+         "            sample_rate: int = 0\n"
+         "            num_frames: int = 0\n"
+         "            num_channels: int = 0\n"
+         "            bits_per_sample: int = 0\n"
+         "            encoding: str = ''\n"
+         "        torchaudio.AudioMetaData = AudioMetaData\n"
          "import whisperx"),
         ("silero-vad",
          "from silero_vad import load_silero_vad"),
