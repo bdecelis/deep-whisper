@@ -189,7 +189,7 @@ $torchIndexUrl = "https://download.pytorch.org/whl/$CudaTag"
 # ---------------------------------------------------------------------------
 Write-Host "[2/6] Installing PyTorch + torchaudio ($CudaTag)..." -ForegroundColor Yellow
 Write-Host "      Index URL: $torchIndexUrl"
-& $PythonExe -m pip install torch torchaudio --index-url $torchIndexUrl
+& $PythonExe -m pip install --no-user torch torchaudio --index-url $torchIndexUrl
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyTorch installation failed. Check your internet connection and CUDA tag."
     exit 1
@@ -211,7 +211,7 @@ Write-Host "[3/6] Installing cuDNN 8 for CTranslate2..." -ForegroundColor Yellow
 $cudnnPackage = if ($CudaTag -eq "cu118") { "nvidia-cudnn-cu11==8.9.7.29" } `
                 else                       { "nvidia-cudnn-cu12==8.9.7.29" }
 
-& $PythonExe -m pip install $cudnnPackage
+& $PythonExe -m pip install --no-user $cudnnPackage
 if ($LASTEXITCODE -ne 0) {
     Write-Error "cuDNN installation failed."
     exit 1
@@ -289,22 +289,79 @@ if ($cudaCheck -ne "True") {
 }
 
 # ---------------------------------------------------------------------------
-# Step 5 - install faster-whisper, then whisperx
+# Step 5 - install faster-whisper, then whisperx (with torch protection)
 # ---------------------------------------------------------------------------
+# whisperx is known to pull in a CPU-only torch as a transitive dependency,
+# silently overwriting a CUDA-capable build. We capture the torch state
+# before, install, then detect and restore automatically if broken.
+
 Write-Host "[5/6] Installing faster-whisper..." -ForegroundColor Yellow
-& $PythonExe -m pip install "faster-whisper>=1.0.0"
+& $PythonExe -m pip install --no-user "faster-whisper>=1.0.0"
 if ($LASTEXITCODE -ne 0) { Write-Error "faster-whisper installation failed."; exit 1 }
 
-Write-Host "      Installing whisperx (requires torchaudio to be present)..." -ForegroundColor Yellow
-& $PythonExe -m pip install "whisperx>=3.0.0"
+# Capture torch state before whisperx
+$torchBefore = & $PythonExe -c "import torch; print(torch.__version__); print(torch.version.cuda or 'None'); print(torch.cuda.is_available())" 2>&1
+$torchBeforeLines = ($torchBefore -split "`n") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+$torchVersionBefore  = if ($torchBeforeLines.Count -ge 1) { $torchBeforeLines[0] } else { "" }
+$torchCudaBefore     = if ($torchBeforeLines.Count -ge 2) { $torchBeforeLines[1] } else { "None" }
+$torchCudaOkBefore   = if ($torchBeforeLines.Count -ge 3) { $torchBeforeLines[2] -eq "True" } else { $false }
+
+Write-Host "      torch before whisperx: $torchVersionBefore / CUDA $torchCudaBefore / available=$torchCudaOkBefore" -ForegroundColor Gray
+
+Write-Host "      Installing whisperx..." -ForegroundColor Yellow
+& $PythonExe -m pip install --no-user "whisperx>=3.0.0"
 if ($LASTEXITCODE -ne 0) { Write-Error "whisperx installation failed."; exit 1 }
+
+# Detect and repair torch breakage caused by whisperx
+if ($torchCudaOkBefore) {
+    $torchAfter = & $PythonExe -c "import torch; print(torch.__version__); print(torch.version.cuda or 'None'); print(torch.cuda.is_available())" 2>&1
+    $torchAfterLines = ($torchAfter -split "`n") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+    $torchVersionAfter = if ($torchAfterLines.Count -ge 1) { $torchAfterLines[0] } else { "" }
+    $torchCudaAfter    = if ($torchAfterLines.Count -ge 2) { $torchAfterLines[1] } else { "None" }
+    $torchCudaOkAfter  = if ($torchAfterLines.Count -ge 3) { $torchAfterLines[2] -eq "True" } else { $false }
+
+    $cudaBroken = (-not $torchCudaOkAfter) -or ($torchCudaAfter -ne $torchCudaBefore)
+
+    if ($cudaBroken) {
+        Write-Host ""
+        Write-Host "  WARNING: whisperx modified torch." -ForegroundColor Yellow
+        Write-Host "    Before: $torchVersionBefore / CUDA $torchCudaBefore" -ForegroundColor White
+        Write-Host "    After:  $torchVersionAfter / CUDA $torchCudaAfter" -ForegroundColor White
+        Write-Host "  Restoring torch CUDA build..." -ForegroundColor Yellow
+
+        # Strip local version suffix (e.g. 2.6.0+cu128 -> 2.6.0) for pip lookup
+        $torchBaseVersion = $torchVersionBefore -replace '\+.*$', ''
+
+        & $PythonExe -m pip install `
+            --no-user `
+            --force-reinstall `
+            --index-url $torchIndexUrl `
+            "torch==$torchBaseVersion" `
+            "torchaudio==$torchBaseVersion"
+
+        $torchFinal = & $PythonExe -c "import torch; print(torch.cuda.is_available())" 2>&1
+        if ($torchFinal.Trim() -eq "True") {
+            Write-Host "      torch CUDA restored successfully." -ForegroundColor Green
+        } else {
+            Write-Host ""
+            Write-Host "  ERROR: Could not restore torch CUDA automatically." -ForegroundColor Red
+            Write-Host "  Please run this command manually:" -ForegroundColor Yellow
+            Write-Host "    $PythonExe -m pip install --force-reinstall --no-user \" -ForegroundColor White
+            Write-Host "      --index-url $torchIndexUrl \" -ForegroundColor White
+            Write-Host "      torch==$torchBaseVersion torchaudio==$torchBaseVersion" -ForegroundColor White
+        }
+    } else {
+        Write-Host "      torch CUDA intact after whisperx. ($torchVersionAfter / CUDA $torchCudaAfter)" -ForegroundColor Green
+    }
+}
+
 Write-Host "      faster-whisper + whisperx installed." -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
 # Step 6 - install remaining dependencies
 # ---------------------------------------------------------------------------
 Write-Host "[6/6] Installing remaining dependencies..." -ForegroundColor Yellow
-& $PythonExe -m pip install `
+& $PythonExe -m pip install --no-user `
     "silero-vad>=5.0.0" `
     "librosa>=0.10.0" `
     "soundfile>=0.12.0" `
