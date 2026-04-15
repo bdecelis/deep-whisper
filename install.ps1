@@ -185,6 +185,43 @@ if ($CudaTag -ne "") {
 $torchIndexUrl = "https://download.pytorch.org/whl/$CudaTag"
 
 # ---------------------------------------------------------------------------
+# Pre-flight: fix known broken packages before pip resolves anything
+# ---------------------------------------------------------------------------
+# pytorch-lightning < 2.0.0 ships with a malformed version specifier
+# (torch>=1.9.*) that pip 24.1+ rejects during dependency resolution —
+# even when --no-user is set, if the package is in the target environment.
+# Upgrade it before any install that triggers dependency resolution.
+Write-Host "[pre] Checking for known dependency conflicts..." -ForegroundColor Yellow
+
+$plResult = & $PythonExe -m pip show pytorch-lightning 2>&1
+if ($LASTEXITCODE -eq 0) {
+    $plVersion = ($plResult | Select-String "^Version:").ToString() -replace "Version:\s*", ""
+    $plMajor   = [int]($plVersion.Split(".")[0])
+    if ($plMajor -lt 2) {
+        Write-Host "      Found pytorch-lightning $plVersion (invalid metadata for pip 24.1+)." -ForegroundColor Yellow
+        Write-Host "      Upgrading to a version with valid metadata..." -ForegroundColor Yellow
+        $upgradeResult = & $PythonExe -m pip install --no-user "pytorch-lightning>=2.0.0" 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "      pytorch-lightning upgraded." -ForegroundColor Green
+        } else {
+            Write-Host "      Upgrade failed — removing pytorch-lightning instead..." -ForegroundColor Yellow
+            & $PythonExe -m pip uninstall pytorch-lightning -y
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "      pytorch-lightning removed." -ForegroundColor Green
+            } else {
+                Write-Host "      WARNING: Could not remove pytorch-lightning." -ForegroundColor Red
+                Write-Host "      If the install fails, run manually:" -ForegroundColor Yellow
+                Write-Host "        $PythonExe -m pip uninstall pytorch-lightning -y" -ForegroundColor White
+            }
+        }
+    } else {
+        Write-Host "      pytorch-lightning $plVersion — OK." -ForegroundColor Gray
+    }
+} else {
+    Write-Host "      pytorch-lightning not found — OK." -ForegroundColor Gray
+}
+
+# ---------------------------------------------------------------------------
 # Step 2 - install PyTorch + torchaudio (CUDA build)
 # ---------------------------------------------------------------------------
 Write-Host "[2/6] Installing PyTorch + torchaudio ($CudaTag)..." -ForegroundColor Yellow
