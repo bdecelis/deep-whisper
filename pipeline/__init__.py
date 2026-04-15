@@ -5,7 +5,7 @@ Public API and single-call entry point.
 
 After pip install deep-whisper, run the GPU stack installer:
 
-    deep-whisper-setup
+    python -m deep_whisper.pipeline.setup_gpu
 
 This installs PyTorch (CUDA build), faster-whisper, whisperx, and cuDNN
 (Windows) with all known-issue mitigations. pip install alone is not
@@ -13,6 +13,49 @@ sufficient because whisperx overwrites the CUDA torch build as a side effect.
 """
 
 from __future__ import annotations
+
+
+# ---------------------------------------------------------------------------
+# Compatibility shim — must run before any whisperx import
+# ---------------------------------------------------------------------------
+# torchaudio.AudioMetaData was reorganised between versions. whisperx
+# references its old location and raises AttributeError on some torchaudio
+# builds. We inject it into the torchaudio namespace here, before any
+# pipeline module imports whisperx, so the attribute is always present.
+
+def _apply_torchaudio_compat() -> None:
+    try:
+        import torchaudio
+        if hasattr(torchaudio, "AudioMetaData"):
+            return  # already present — nothing to do
+
+        # Try the old location first (torchaudio < 2.x)
+        try:
+            from torchaudio.backend.common import AudioMetaData
+            torchaudio.AudioMetaData = AudioMetaData
+            return
+        except ImportError:
+            pass
+
+        # Fallback: build a minimal compatible dataclass that satisfies
+        # whisperx's type-hint usage without any audio I/O functionality.
+        import dataclasses
+
+        @dataclasses.dataclass
+        class AudioMetaData:
+            sample_rate:    int = 0
+            num_frames:     int = 0
+            num_channels:   int = 0
+            bits_per_sample:int = 0
+            encoding:       str = ""
+
+        torchaudio.AudioMetaData = AudioMetaData
+
+    except ImportError:
+        pass  # torchaudio not installed yet — setup_gpu handles it
+
+
+_apply_torchaudio_compat()
 
 
 def run(
