@@ -5,7 +5,7 @@ Single source of truth for all constants, thresholds, presets, and defaults.
 No other module hardcodes a number or model name — everything lives here.
 
 Import pattern:
-    from pipeline.config import SAMPLE_RATE, QUALITY_PRESETS, ...
+    from deep_whisper.pipeline.config import SAMPLE_RATE, QUALITY_PRESETS, ...
 """
 
 from typing import Final
