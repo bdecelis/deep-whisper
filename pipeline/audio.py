@@ -14,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 import librosa
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     SAMPLE_RATE,
     BOUNDARY_SNAP_WINDOW_MS,
     BOUNDARY_SNAP_FRAME_LENGTH,
