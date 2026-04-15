@@ -41,7 +41,7 @@ attention-weight based and less accurate than forced CTC alignment.
 
 Usage
 -----
-    from pipeline.transcribe import transcribe_chunks
+    from deep_whisper.pipeline.transcribe import transcribe_chunks
 
     segments = transcribe_chunks(chunks, initial_prompt="context here")
 """
@@ -52,7 +52,7 @@ from typing import Iterator
 
 import numpy as np
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     WHISPER_MODEL_DEFAULT,
     COMPUTE_TYPE_DEFAULT,
     QUALITY_PRESETS,
@@ -61,8 +61,8 @@ from pipeline.config import (
     NO_SPEECH_SOFT_THRESHOLD,
     ROLLING_PROMPT_MAX_TOKENS,
 )
-from pipeline.models import get_whisper_model
-from pipeline.utils import truncate_to_tokens
+from deep_whisper.pipeline.models import get_whisper_model
+from deep_whisper.pipeline.utils import truncate_to_tokens
 
 logger = logging.getLogger(__name__)
 
