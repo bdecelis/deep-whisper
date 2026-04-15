@@ -62,7 +62,7 @@ timestamp_level variants
 
 Usage
 -----
-    from pipeline.postprocess import build_output, serialise
+    from deep_whisper.pipeline.postprocess import build_output, serialise
 
     output = build_output(segments, audio, ...)
     json_str = serialise(output)
@@ -75,18 +75,18 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from pipeline.config import (
+from deep_whisper.pipeline.config import (
     SCHEMA_VERSION,
     TIMESTAMP_LEVEL_DEFAULT,
     TIMESTAMP_LEVELS,
     WORD_LOW_CONFIDENCE_THRESHOLD,
 )
-from pipeline.utils import (
+from deep_whisper.pipeline.utils import (
     merge_word_confidences,
     safe_confidence,
     flatten_words,
 )
-from pipeline.audio import get_duration
+from deep_whisper.pipeline.audio import get_duration
 
 logger = logging.getLogger(__name__)
 
